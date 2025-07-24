@@ -180,11 +180,13 @@ document.addEventListener('DOMContentLoaded', () => {
   const ApiKeyManager = {
     keys: [],
     currentIndex: 0,
+    triedKeys: new Set(),
     async loadKeys() {
       const keysString = await DbManager.getKeys();
       this.keys = keysString.split('\n').filter((k) => k.trim() !== '');
       apiKeysTextarea.value = keysString;
       this.currentIndex = 0;
+      this.triedKeys.clear();
     },
     async saveKeys() {
       await DbManager.saveKeys(apiKeysTextarea.value);
@@ -192,11 +194,22 @@ document.addEventListener('DOMContentLoaded', () => {
       alert(`Saved ${this.keys.length} API key(s) to IndexedDB.`);
     },
     getCurrentKey() {
-      return this.keys.length > 0 ? this.keys[this.currentIndex] : null;
+      if (this.keys.length > 0) {
+        this.triedKeys.add(this.keys[this.currentIndex]);
+        return this.keys[this.currentIndex];
+      }
+      return null;
     },
     rotateKey() {
-      if (this.keys.length > 0)
+      if (this.keys.length > 0) {
         this.currentIndex = (this.currentIndex + 1) % this.keys.length;
+      }
+    },
+    hasTriedAllKeys() {
+      return this.triedKeys.size >= this.keys.length;
+    },
+    resetTriedKeys() {
+      this.triedKeys.clear();
     },
   };
 
@@ -862,63 +875,84 @@ Always format your responses using Markdown, and cite your sources.`;
       try {
         let promptParts = initialParts;
         let running = true;
+        let attempts = 0;
 
-        // Loop to handle potential multi-turn tool calls
+        ApiKeyManager.resetTriedKeys();
+
+        // Loop to handle potential multi-turn tool calls and API key rotation
         while (running && !this.isCancelled) {
-          console.log(
-            '[DEBUG] Sending parts to model:',
-            JSON.stringify(promptParts, null, 2),
-          );
-          const result = await this.chatSession.sendMessageStream(promptParts);
+          try {
+            console.log(
+              '[DEBUG] Sending parts to model:',
+              JSON.stringify(promptParts, null, 2),
+            );
+            const result = await this.chatSession.sendMessageStream(promptParts);
 
-          let fullResponseText = '';
-          let functionCalls = [];
+            let fullResponseText = '';
+            let functionCalls = [];
 
-          // Process the stream for text and function calls
-          console.log('[DEBUG] Waiting for stream to process...');
-          for await (const chunk of result.stream) {
+            // Process the stream for text and function calls
+            console.log('[DEBUG] Waiting for stream to process...');
+            for await (const chunk of result.stream) {
+              if (this.isCancelled) break;
+
+              // Aggregate text
+              const chunkText = chunk.text();
+              if (chunkText) {
+                fullResponseText += chunkText;
+                this.appendMessage(fullResponseText, 'ai', true);
+              }
+
+              // Aggregate function calls
+              const chunkFunctionCalls = chunk.functionCalls();
+              if (chunkFunctionCalls) {
+                functionCalls.push(...chunkFunctionCalls);
+              }
+            }
+            console.log('[DEBUG] Stream finished.');
+
             if (this.isCancelled) break;
 
-            // Aggregate text
-            const chunkText = chunk.text();
-            if (chunkText) {
-              fullResponseText += chunkText;
-              this.appendMessage(fullResponseText, 'ai', true);
+            if (functionCalls.length > 0) {
+              console.log('[DEBUG] Function calls detected:', functionCalls);
+              this.appendMessage('AI is using tools...', 'ai');
+
+              const toolPromises = functionCalls.map((call) =>
+                this.executeTool(call),
+              );
+              const toolResults = await Promise.all(toolPromises);
+
+              console.log('[DEBUG] Tool execution results:', toolResults);
+
+              // Prepare the next message with tool results
+              promptParts = toolResults.map((toolResult) => ({
+                functionResponse: {
+                  name: toolResult.toolResponse.name,
+                  response: toolResult.toolResponse.response,
+                },
+              }));
+            } else {
+              console.log(
+                '[DEBUG] No function calls. Conversation is over for this turn.',
+              );
+              running = false; // No more tool calls, exit the loop
             }
-
-            // Aggregate function calls
-            const chunkFunctionCalls = chunk.functionCalls();
-            if (chunkFunctionCalls) {
-              functionCalls.push(...chunkFunctionCalls);
+          } catch (error) {
+            console.error('Chat Error in loop:', error);
+            if (
+              error.message.includes('429') &&
+              !ApiKeyManager.hasTriedAllKeys()
+            ) {
+              this.appendMessage(
+                `API key failed. Rotating to the next key...`,
+                'ai',
+              );
+              ApiKeyManager.rotateKey();
+              await this.startOrRestartChatSession(); // Re-initialize with new key
+              // The loop will continue with the same promptParts
+            } else {
+              throw error; // Re-throw if it's not a 429 or all keys are tried
             }
-          }
-          console.log('[DEBUG] Stream finished.');
-
-          if (this.isCancelled) break;
-
-          if (functionCalls.length > 0) {
-            console.log('[DEBUG] Function calls detected:', functionCalls);
-            this.appendMessage('AI is using tools...', 'ai');
-
-            const toolPromises = functionCalls.map((call) =>
-              this.executeTool(call),
-            );
-            const toolResults = await Promise.all(toolPromises);
-
-            console.log('[DEBUG] Tool execution results:', toolResults);
-
-            // Prepare the next message with tool results
-            promptParts = toolResults.map((toolResult) => ({
-              functionResponse: {
-                name: toolResult.toolResponse.name,
-                response: toolResult.toolResponse.response,
-              },
-            }));
-          } else {
-            console.log(
-              '[DEBUG] No function calls. Conversation is over for this turn.',
-            );
-            running = false; // No more tool calls, exit the loop
           }
         }
 
