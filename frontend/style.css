@@ -508,3 +508,67 @@ body.resizing {
   padding: 0 10px;
   opacity: 0;
 }
+
+.tool-log-entry {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  padding: 10px;
+  margin-bottom: 8px;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, Courier,
+    monospace;
+  font-size: 0.85em;
+}
+
+.tool-log-entry-header {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+}
+
+.tool-log-entry-header .status-icon {
+  margin-right: 8px;
+  width: 16px;
+  height: 16px;
+}
+
+.tool-log-entry-header .loader {
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #3498db;
+  border-radius: 50%;
+  width: 12px;
+  height: 12px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.tool-log-entry-header .status-icon.completed {
+  color: #28a745;
+  font-weight: bold;
+}
+
+.tool-log-entry-header .tool-name {
+  font-weight: bold;
+}
+
+.tool-log-params {
+  margin-top: 8px;
+  padding: 8px;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  max-height: 100px;
+  overflow-y: auto;
+  display: none; /* Hidden by default */
+}

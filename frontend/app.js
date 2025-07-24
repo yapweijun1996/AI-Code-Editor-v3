@@ -577,13 +577,7 @@ Always format your responses using Markdown, and cite your sources.`;
     async executeTool(toolCall) {
       const toolName = toolCall.name;
       const parameters = toolCall.args;
-      this.appendToolLog(
-        `RUNNING: ${toolName} with params: ${JSON.stringify(
-          parameters,
-          null,
-          2,
-        )}`,
-      );
+      const logEntry = this.appendToolLog(toolName, parameters);
       console.log(`[Frontend] Tool Call: ${toolName}`, parameters);
 
       let result;
@@ -829,7 +823,7 @@ Always format your responses using Markdown, and cite your sources.`;
         };
       }
       console.log(`[Frontend] Tool Result: ${toolName}`, result);
-      this.appendToolLog(`COMPLETED: ${toolName}.`);
+      this.updateToolLog(logEntry, true);
       return { toolResponse: { name: toolName, response: result } };
     },
 
@@ -956,12 +950,39 @@ Always format your responses using Markdown, and cite your sources.`;
       await this.startOrRestartChatSession(); // Start a fresh session
     },
   
-    appendToolLog(text) {
+    appendToolLog(toolName, params) {
       const logEntry = document.createElement('div');
       logEntry.className = 'tool-log-entry';
-      logEntry.textContent = text;
+
+      const header = document.createElement('div');
+      header.className = 'tool-log-entry-header';
+      header.innerHTML = `
+        <div class="status-icon loader"></div>
+        <span class="tool-name">${toolName}</span>
+      `;
+
+      const paramsPre = document.createElement('pre');
+      paramsPre.className = 'tool-log-params';
+      paramsPre.textContent = JSON.stringify(params, null, 2);
+
+      logEntry.appendChild(header);
+      logEntry.appendChild(paramsPre);
+
+      header.addEventListener('click', () => {
+        paramsPre.style.display =
+          paramsPre.style.display === 'none' ? 'block' : 'none';
+      });
+
       toolLogMessages.appendChild(logEntry);
       toolLogMessages.scrollTop = toolLogMessages.scrollHeight;
+      return logEntry;
+    },
+
+    updateToolLog(logEntry, isSuccess) {
+      const statusIcon = logEntry.querySelector('.status-icon');
+      statusIcon.classList.remove('loader');
+      statusIcon.classList.add(isSuccess ? 'completed' : 'failed');
+      statusIcon.textContent = isSuccess ? '✔' : '✖';
     },
     async condenseHistory() {
       if (!this.chatSession) {
