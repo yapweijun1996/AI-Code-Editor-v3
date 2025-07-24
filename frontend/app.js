@@ -573,10 +573,12 @@ Always format your responses using Markdown, and cite your sources.`;
     async executeTool(toolCall) {
       const toolName = toolCall.name;
       const parameters = toolCall.args;
-      this.appendMessage(
-        `AI is using tool: ${toolName} with parameters: ${JSON.stringify(parameters)}`,
-        'ai',
-      );
+      // this.appendMessage(
+      //   `AI is using tool: ${toolName} with parameters: ${JSON.stringify(
+      //     parameters,
+      //   )}`,
+      //   'ai',
+      // );
       console.log(`[Frontend] Tool Call: ${toolName}`, parameters);
 
       let result;
@@ -822,7 +824,7 @@ Always format your responses using Markdown, and cite your sources.`;
         };
       }
       console.log(`[Frontend] Tool Result: ${toolName}`, result);
-      this.appendMessage(`Tool ${toolName} finished.`, 'ai');
+      // this.appendMessage(`Tool ${toolName} finished.`, 'ai');
       return { toolResponse: { name: toolName, response: result } };
     },
 
@@ -897,7 +899,7 @@ Always format your responses using Markdown, and cite your sources.`;
 
           if (functionCalls.length > 0) {
             console.log('[DEBUG] Function calls detected:', functionCalls);
-            this.appendMessage('AI is using tools...', 'ai');
+            // this.appendMessage('AI is using tools...', 'ai');
 
             const toolPromises = functionCalls.map((call) =>
               this.executeTool(call),
