@@ -27,6 +27,10 @@ document.addEventListener('DOMContentLoaded', () => {
     'image-preview-container',
   );
 
+  // --- Tool Log Elements ---
+  const toolLogContainer = document.getElementById('tool-log-container');
+  const toolLogMessages = document.getElementById('tool-log-messages');
+  const toolLogHeader = document.querySelector('.tool-log-header');
   // --- State for multimodal input ---
   let uploadedImage = null; // Will store { name, type, data }
 
@@ -573,12 +577,13 @@ Always format your responses using Markdown, and cite your sources.`;
     async executeTool(toolCall) {
       const toolName = toolCall.name;
       const parameters = toolCall.args;
-      // this.appendMessage(
-      //   `AI is using tool: ${toolName} with parameters: ${JSON.stringify(
-      //     parameters,
-      //   )}`,
-      //   'ai',
-      // );
+      this.appendToolLog(
+        `RUNNING: ${toolName} with params: ${JSON.stringify(
+          parameters,
+          null,
+          2,
+        )}`,
+      );
       console.log(`[Frontend] Tool Call: ${toolName}`, parameters);
 
       let result;
@@ -824,7 +829,7 @@ Always format your responses using Markdown, and cite your sources.`;
         };
       }
       console.log(`[Frontend] Tool Result: ${toolName}`, result);
-      // this.appendMessage(`Tool ${toolName} finished.`, 'ai');
+      this.appendToolLog(`COMPLETED: ${toolName}.`);
       return { toolResponse: { name: toolName, response: result } };
     },
 
@@ -899,7 +904,7 @@ Always format your responses using Markdown, and cite your sources.`;
 
           if (functionCalls.length > 0) {
             console.log('[DEBUG] Function calls detected:', functionCalls);
-            // this.appendMessage('AI is using tools...', 'ai');
+            this.appendMessage('AI is using tools...', 'ai');
 
             const toolPromises = functionCalls.map((call) =>
               this.executeTool(call),
@@ -950,7 +955,14 @@ Always format your responses using Markdown, and cite your sources.`;
       this.appendMessage('Conversation history cleared.', 'ai');
       await this.startOrRestartChatSession(); // Start a fresh session
     },
-
+  
+    appendToolLog(text) {
+      const logEntry = document.createElement('div');
+      logEntry.className = 'tool-log-entry';
+      logEntry.textContent = text;
+      toolLogMessages.appendChild(logEntry);
+      toolLogMessages.scrollTop = toolLogMessages.scrollHeight;
+    },
     async condenseHistory() {
       if (!this.chatSession) {
         this.appendMessage('No active session to condense.', 'ai');
@@ -1391,6 +1403,10 @@ Always format your responses using Markdown, and cite your sources.`;
   saveKeysButton.addEventListener('click', () => ApiKeyManager.saveKeys());
   chatSendButton.addEventListener('click', () => GeminiChat.sendMessage());
   chatCancelButton.addEventListener('click', () => GeminiChat.cancelMessage());
+
+  toolLogHeader.addEventListener('click', () => {
+    toolLogContainer.classList.toggle('collapsed');
+  });
 
   // Context management listeners
   viewContextButton.addEventListener('click', async () => {
