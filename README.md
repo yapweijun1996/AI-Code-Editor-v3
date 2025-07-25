@@ -6,16 +6,13 @@ This project is a sophisticated, browser-based code editor that integrates a pow
 
 ## Core Architecture
 
-The editor's architecture is built on modern web technologies to be both powerful and secure.
+The editor's architecture has been streamlined to use a local Node.js server, simplifying setup and management.
 
-*   **Client-Centric Design**: The application's core logic resides in the frontend (`frontend/app.js`). It leverages the **File System Access API**, a native browser feature that allows the web app to interact directly and securely with the user's local files and folders. This eliminates the security risks associated with server-side file operations.
+*   **Local Node.js Server**: A lightweight `Express` server (`index.js`) now serves the `frontend` assets, making the application accessible at `http://localhost:3000`. This approach provides a stable and consistent runtime environment.
 
-*   **Simplified Backend**: The Node.js backend (`backend/index.js`) serves as a simple static file server for the frontend assets. It also includes an endpoint to execute terminal commands, acting as a bridge for tools that require a shell environment.
+*   **Client-Centric File Operations**: All core logic and file system interactions remain securely on the client-side in `frontend/app.js`. The application uses the browser's native **File System Access API**, ensuring that all file operations are handled directly and safely by the user's browser.
 
-*   **Stateful Experience with IndexedDB**: The application uses IndexedDB to persist user data locally. This includes:
-    *   **API Keys**: Securely stores the user's Gemini API keys.
-    *   **Directory Handle**: Remembers the last opened project folder, allowing for quick reconnection.
-    *   **Codebase Index**: Caches a searchable index of the project's code for faster queries.
+*   **Stateful Experience with IndexedDB**: The application continues to use IndexedDB to persist user data locally, including API keys and the handle to the last used project directory.
 
 ---
 
@@ -32,45 +29,30 @@ The editor's architecture is built on modern web technologies to be both powerfu
 
 ## Getting Started
 
-Follow these steps to set up and run the project locally.
+Running the application is now managed by simple, powerful scripts for all major operating systems.
 
 ### Prerequisites
 
 *   [Node.js](https://nodejs.org/) (which includes `npm`) installed on your system.
 
-### Installation & Running
+### Installation and Management
 
-#### Windows (Automated Setup)
+The application includes interactive scripts to handle all aspects of installation, execution, and process management.
 
-1.  **Run the setup script:**
-    *   Double-click the `setup.bat` file in the project root. This will automatically install dependencies, install `pm2` (a process manager), start the server, and configure it to launch on startup.
-2.  **Open the application:**
-    *   Navigate to `http://localhost:3333` in a modern web browser that supports the File System Access API (e.g., Chrome, Edge).
+1.  **Launch the Management Script**:
+    *   **On Windows**: Double-click `app.bat`.
+    *   **On macOS / Linux**: First, make the script executable by running `chmod +x ./app.sh`, then run it with `./app.sh`.
 
-#### macOS / Linux (Manual Setup)
+2.  **Install Dependencies (First-Time Setup)**:
+    *   From the script's main menu, select **[1] Install Dependencies**. This will download the necessary `npm` packages and install `pm2` globally.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone [repository-url]
-    cd [repository-folder]
-    ```
+3.  **Start the Server**:
+    *   From the menu, select **[2] Start Server**. This will launch the application using `pm2`.
 
-2.  **Install backend dependencies:**
-    ```bash
-    cd backend
-    npm install
-    ```
+4.  **Access the Application**:
+    *   Open your web browser (e.g., Chrome, Edge) and navigate to **`http://localhost:3000`**.
 
-3.  **Install and Configure PM2:**
-    ```bash
-    npm install pm2 -g
-    pm2 start index.js --name "ai-code-editor"
-    pm2 startup # Follow the on-screen instructions to enable auto-start
-    pm2 save
-    ```
-
-4.  **Open the application:**
-    *   Navigate to `http://localhost:3333` in a modern web browser that supports the File System Access API (e.g., Chrome, Edge).
+The management scripts also provide options to **stop**, **restart**, and **monitor** the server, as well as **enable/disable auto-startup** on system reboot.
 
 ### Configuration
 
@@ -101,21 +83,3 @@ Follow these steps to set up and run the project locally.
 
 ---
 
-## AI Toolset
-
-The AI agent has access to a variety of tools to interact with the project:
-
-| Tool                      | Description                                                                                              |
-| ------------------------- | -------------------------------------------------------------------------------------------------------- |
-| `get_project_structure`   | Gets the entire file and folder structure of the project.                                                |
-| `create_file`             | Creates a new file with specified content.                                                               |
-| `rewrite_file`            | Rewrites a file with new content. Overwrites the entire existing file content.                           |
-| `read_file`               | Reads the content of an existing file.                                                                   |
-| `delete_file`             | Deletes a file from the project.                                                                         |
-| `search_code`             | Searches for a string across all files in the project.                                                   |
-| `get_open_file_content`   | Gets the content of the file currently open in the editor.                                               |
-| `get_selected_text`       | Gets the text currently highlighted by the user.                                                         |
-| `replace_selected_text`   | Replaces the currently selected text with new content.                                                   |
-| `run_terminal_command`    | Executes a shell command on the backend.                                                                 |
-| `build_or_update_codebase_index` | Scans the codebase to build a searchable index for faster queries. |
-| `query_codebase`          | Searches the pre-built codebase index for definitions and TODOs.                                          |
